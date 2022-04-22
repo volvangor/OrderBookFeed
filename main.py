@@ -1,16 +1,29 @@
-# This is a sample Python script.
+#  main.py
+#  OrderBookFeed
+#
+#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
+#  Last modified 22/4/22, 10:59 am
+#  Copyright (c) 2022 James Hartman. All Rights Reserved
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+#  main.py
+#  OrderBookFeed
+#
+import argparse
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+def init():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("first", type = str, help = "first input", required = False)
+    parser.add_argument("second", type = str, help = "second input", required = False)
+    args = parser.parse_args()
+    first, second = "", ""
+    first, second = args.first, args.second
+    print(f'first: {first}, second: {second}')
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
+    init()
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+# TODO: input stream parsing
+# TODO: pass to def for messages
+# TODO: handle messages for add, update, delete and execute
