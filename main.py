@@ -3,6 +3,9 @@
 #  OrderBookFeed
 #
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
+#  Last modified 24/4/22, 8:48 pm
+#
+#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
 #  Last modified 24/4/22, 6:27 pm
 #
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
@@ -16,31 +19,31 @@
 
 # done: 1 input stream parsing
 # done: 2 pass to def for messages
-# TODO: 3 handle messages for add, update, delete and execute
-# TODO: 4 keep track of order book, trigger print when change occurs in top n of buy or sell
-# TODO: 5 do potential (possible) error handling
-# TODO: 6 cleanup
-# TODO: 7 optimise, brute force first
-# TODO: 8 optional: build for continuous input, i.e. unending, true stream of data
-# TODO: 9 optional: stream corruption checking
+# done: 3 handle messages for add, update, delete and execute
+# done: 4 keep track of order book
+# done: 5 trigger print when change occurs in top n of buy or sell
+# TODO: 6 do potential (possible) error handling
+# TODO: 7 cleanup
+# TODO: 8 optimise, brute force first
+# TODO: 9 optional: build for continuous input, i.e. unending, true stream of data
+# TODO: 10 optional: stream corruption checking
 
+BUY_STR = 'B'
+SELL_STR = 'S'
 
-# order book = [symbols]
-# book = {"symbol": {"buys": {"order_id": {"size": "size", "price": "price"}, ...}, ...}}
-# buy/sell = {order_id: {size: size, price: price}, ...}
-
-# order book = [symbols]
-# symbols = {[buy], [sell]}
-# buy/sell = id: {size: size, price: price}
-# order = {id: [size, price], ...}
+import heapq
+from operator import itemgetter
 
 
 class OrderBook:
 
-    def __init__(self):
+    def __init__(self, n):
         self.symbols = {}
+        self.levels = n
+        self.snapshot = {}
         # {"symbol": {"buys": {"order_id": {"size": "size", "price": "price"}, ...}, ...}}
 
+    # region Actions
     def add(self, symbol, side, order_id, price, size):
         # create a new order, error if exists
         if symbol in self.symbols:
@@ -48,18 +51,15 @@ class OrderBook:
                 if order_id in self.symbols[symbol][side]:
                     raise KeyError
                 else:
-                    self.symbols[symbol][side][order_id] = {"price": price, "size": size}
+                    self.symbols[symbol][side][order_id] = {"price": price, "size": size, "order_id": order_id}
             else:
-                self.symbols[symbol][side] = {order_id: {"price": price, "size": size}}
+                self.symbols[symbol][side] = {order_id: {"price": price, "size": size, "order_id": order_id}}
         else:
-            self.symbols[symbol] = {side: {order_id: {"price": price, "size": size}}}
+            self.symbols[symbol] = {side: {order_id: {"price": price, "size": size, "order_id": order_id}}}
 
     def update(self, symbol, side, order_id, price, size):
         # update an existing order, error if not exists
-        if order_id in self.symbols[symbol][side]:
-            self.symbols[symbol][side][order_id] = {"price": price, "size": size}
-        else:
-            raise KeyError
+        self.symbols[symbol][side][order_id] = {"price": price, "size": size}
 
     def delete(self, symbol, side, order_id, size = None):
         # delete all or execute an amount from an order
@@ -68,13 +68,18 @@ class OrderBook:
             del self.symbols[symbol][side][order_id]
         else:
             # execute some or all
-            self.symbols[symbol][side][order_id]["size"] -= size
+            # needed as for some reason -= would modify the snapshot too
+            _old_price = self.symbols[symbol][side][order_id]["price"]
+            _new_size = self.symbols[symbol][side][order_id]["size"] - size
+            self.update(symbol, side, order_id, _old_price, _new_size)
             if self.symbols[symbol][side][order_id]["size"] <= 0:
                 del self.symbols[symbol][side][order_id]
 
-    def take_action(self, action):
+    # endregion
+
+    def take_action(self, action, sequence_num):
         if action['type'] == 'A':
-            # ADD an order
+            # ADD
             self.add(action["symbol"], action["side"], action["order"], action["price"], action["size"])
         elif action['type'] == 'U':
             # UPDATE
@@ -85,6 +90,61 @@ class OrderBook:
         else:
             # EXECUTE
             self.delete(action["symbol"], action["side"], action["order"], action["size"])
+        self.check_snapshot(action["symbol"], action["side"], sequence_num)
+
+    def check_snapshot(self, symbol, side, sequence_num):
+        # for buy or sell in symbol (based on side): get n highest/lowest orders (based on price)
+        _n = self.levels
+        if len(self.symbols[symbol][side]) > 0:
+            if side == BUY_STR:
+                # highest_buys
+                update = heapq.nlargest(_n, list(self.symbols[symbol][side].values()), key = itemgetter('price'))
+            else:
+                # lowest sells
+                update = heapq.nsmallest(_n, list(self.symbols[symbol][side].values()), key = itemgetter('price'))
+        else:
+            update = []  # save time if blank, which could actually be extended to 1, since len 1 is always "ordered
+
+        if symbol in self.snapshot and side in self.snapshot[symbol]:
+            if update != self.snapshot[symbol][side]:
+                self.update_snapshot(symbol, side, update)
+                self.print_snapshot(symbol, sequence_num)
+        else:
+            # new symbol, therefore it must be new
+            self.update_snapshot(symbol, side, update)
+            self.print_snapshot(symbol, sequence_num)
+
+    def update_snapshot(self, symbol, side, update):
+        if symbol in self.snapshot:
+            self.snapshot[symbol][side] = update
+        else:
+            self.snapshot[symbol] = {side: update}
+
+    def print_snapshot(self, symbol, sequence_num):
+        # noinspection Duplicates
+        if BUY_STR in self.snapshot[symbol]:
+            _buy_str = '['
+            if len(self.snapshot[symbol][BUY_STR]) > 0:
+                for order in self.snapshot[symbol][BUY_STR]:
+                    _buy_str += f'({order["price"]}, {order["size"]}), '
+                _buy_str = _buy_str[:-2]
+            _buy_str += ']'
+        else:
+            _buy_str = '[]'
+
+        # noinspection Duplicates
+        if SELL_STR in self.snapshot[symbol]:
+            _sell_str = '['
+            if len(self.snapshot[symbol][SELL_STR]) > 0:
+                for order in self.snapshot[symbol][SELL_STR]:
+                    _sell_str += f'({order["price"]}, {order["size"]}), '
+                _sell_str = _sell_str[:-2]
+            _sell_str += ']'
+        else:
+            _sell_str = '[]'
+        print(f'{sequence_num}, {symbol}, {_buy_str}, {_sell_str}')
+
+    def print_out(self):
         print(self.symbols)
 
 
@@ -118,7 +178,7 @@ def parse_msg(mutable_bytes):
     # shared by all: type, symbol, orderID, side, (padding)
     if len(mutable_bytes) < 16:  # bare minimum message size, according to documentation
         print(f'VALUE ERROR: length {len(mutable_bytes)}')
-        raise ValueError  # TODO: refer to todo 9
+        raise ValueError  # TODO: refer to todo 10
     mutable_bytes, _type_byte = read_n_bytes(mutable_bytes, 1)
     mutable_bytes, _symbol_bytes = read_n_bytes(mutable_bytes, 3)
     mutable_bytes, _order_bytes = read_n_bytes(mutable_bytes, 8)
@@ -142,14 +202,14 @@ def parse_msg(mutable_bytes):
 if __name__ == '__main__':
     # parse command line
     # TODO: fix this as it corrupts when passing as cat | program
-    foo = open("input1.stream", "rb").read()
-    print(type(foo))
+
+    foo = open("input2.stream", "rb").read()
     mutable_foo = bytearray(foo)
 
     # todo: make argument
     levels = 5
 
-    order_book = OrderBook()
+    order_book = OrderBook(levels)
 
     # we always start with a header of 4 bytes
     # original_len = len(mutable_foo)
@@ -166,4 +226,4 @@ if __name__ == '__main__':
         msg_size = int.from_bytes(size_bytes, byteorder = 'little', signed = False)
 
         mutable_foo, msg_bytes = read_n_bytes(mutable_foo, msg_size)
-        order_book.take_action(parse_msg(msg_bytes))
+        order_book.take_action(parse_msg(msg_bytes), seq_num)
