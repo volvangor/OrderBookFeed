@@ -3,14 +3,11 @@
 #  OrderBookFeed
 #
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
+#  Last modified 24/4/22, 10:42 pm
+#
+#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
 #  Last modified 24/4/22, 6:20 pm
 
-#  timing.py
-#  OrderBookFeed
-#
-#  timing.py
-#  OrderBookFeed
-#
 import timeit
 from collections import deque
 
@@ -49,8 +46,4 @@ def test():
 '''
 print(f'slice: {timeit.timeit(stmt = testcode2, setup = setup_code2)}')
 
-some_dict = {}
 
-some_dict["foo"] = 4
-
-print(some_dict)
