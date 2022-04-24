@@ -3,6 +3,12 @@
 #  OrderBookFeed
 #
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
+#  Last modified 24/4/22, 9:27 pm
+#
+#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
+#  Last modified 24/4/22, 9:25 pm
+#
+#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
 #  Last modified 24/4/22, 8:48 pm
 #
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
@@ -22,34 +28,30 @@ from operator import itemgetter
 # done: 3 handle messages for add, update, delete and execute
 # done: 4 keep track of order book
 # done: 5 trigger print when change occurs in top n of buy or sell
-# TODO: 6 do potential (possible) error handling
-# TODO: 7 cleanup
-# TODO: 8 optimise, brute force first
+# TODO: 6 cleanup, command line arguments
+# TODO: 7 optimise, brute force first
+# TODO: 8 do potential (possible) error handling
 # TODO: 9 optional: build for continuous input, i.e. unending, true stream of data
 # TODO: 10 optional: stream corruption checking
 
 BUY_STR = 'B'
 SELL_STR = 'S'
 
-import heapq
-from operator import itemgetter
-
 
 class OrderBook:
 
     def __init__(self, n):
-        self.symbols = {}
+        # While this may seem convoluted, this method of referencing is reportedly, on average, O(1) (very fast)
+        self.symbols = {}  # {symbol: {B: {order_id: {"size": size, "price": price, "order_id": order_id}, ...}, ...}}
         self.levels = n
-        self.snapshot = {}
-        # {"symbol": {"buys": {"order_id": {"size": "size", "price": "price"}, ...}, ...}}
+        self.snapshot = {}  # {symbol: {B: {order_id: {"size": size, "price": price, "order_id": order_id}, ...}, ...}}
 
-    # region Actions
     def add(self, symbol, side, order_id, price, size):
         # create a new order, error if exists
         if symbol in self.symbols:
             if side in self.symbols[symbol]:
                 if order_id in self.symbols[symbol][side]:
-                    raise KeyError
+                    raise KeyError  # already exists, raise key error
                 else:
                     self.symbols[symbol][side][order_id] = {"price": price, "size": size, "order_id": order_id}
             else:
@@ -68,14 +70,12 @@ class OrderBook:
             del self.symbols[symbol][side][order_id]
         else:
             # execute some or all
-            # needed as for some reason -= would modify the snapshot too
+            # needed as for some reason -= would modify the snapshot too, bug not fixed: time constraint
             _old_price = self.symbols[symbol][side][order_id]["price"]
             _new_size = self.symbols[symbol][side][order_id]["size"] - size
             self.update(symbol, side, order_id, _old_price, _new_size)
             if self.symbols[symbol][side][order_id]["size"] <= 0:
                 del self.symbols[symbol][side][order_id]
-
-    # endregion
 
     def take_action(self, action, sequence_num):
         if action['type'] == 'A':
@@ -152,7 +152,7 @@ class OrderBook:
 
 
 def read_n_bytes(mutable_bytes, num_bytes):
-    """
+    """slices the next n bytes (indexes)
 
     Args:
         mutable_bytes (bytearray):
@@ -170,7 +170,7 @@ def read_n_bytes(mutable_bytes, num_bytes):
 
 
 def parse_msg(mutable_bytes):
-    """
+    """parses a bytes message, as defined in PDF, returning an action, reoresented as a dict
 
     Args:
         mutable_bytes (bytearray):
