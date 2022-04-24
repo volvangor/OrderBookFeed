@@ -1,15 +1,10 @@
+
+
 #  Copyright (c) 2022 James Hartman. All Rights Reserved
 #  main.py
 #  OrderBookFeed
-#
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 24/4/22, 10:41 pm
-#
-#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 24/4/22, 10:34 pm
-#
-#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 24/4/22, 9:27 pm
+#  Last modified 24/4/22, 10:43 pm
 
 # !/usr/bin/env python3
 

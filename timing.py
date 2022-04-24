@@ -1,12 +1,8 @@
 #  Copyright (c) 2022 James Hartman. All Rights Reserved
 #  timing.py
 #  OrderBookFeed
-#
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 24/4/22, 10:42 pm
-#
-#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 24/4/22, 6:20 pm
+#  Last modified 24/4/22, 10:43 pm
 
 import timeit
 from collections import deque
