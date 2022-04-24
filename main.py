@@ -3,23 +3,15 @@
 #  OrderBookFeed
 #
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
+#  Last modified 24/4/22, 10:34 pm
+#
+#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
 #  Last modified 24/4/22, 9:27 pm
-#
-#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 24/4/22, 9:25 pm
-#
-#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 24/4/22, 8:48 pm
-#
-#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 24/4/22, 6:27 pm
-#
-#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 24/4/22, 12:48 pm
 
-#  main.py
-#  OrderBookFeed
+# !/usr/bin/env python3
 
+import argparse
+import sys
 from heapq import nlargest, nsmallest
 from operator import itemgetter
 
@@ -28,7 +20,7 @@ from operator import itemgetter
 # done: 3 handle messages for add, update, delete and execute
 # done: 4 keep track of order book
 # done: 5 trigger print when change occurs in top n of buy or sell
-# TODO: 6 cleanup, command line arguments
+# done: 6 cleanup, command line arguments
 # TODO: 7 optimise, brute force first
 # TODO: 8 do potential (possible) error handling
 # TODO: 9 optional: build for continuous input, i.e. unending, true stream of data
@@ -220,13 +212,20 @@ def main(stream, n):
 
 
 if __name__ == '__main__':
-    # byte_stream = sys.stdin.buffer.read()
-    # TODO: bug - corrupts when piping as cat file.stream | program.py (adds bytes and/or removes bytes)
+    desc_text_1 = 'Processes an input stream of order book messages, output a price depth'
+    desc_text_2 = ' snapshot of the top N levels each time there is a visible change'
+    parser = argparse.ArgumentParser(description = desc_text_1 + desc_text_2)
+    # parser.add_argument("filePath", type = str, help = "File path of the binary file")
+    parser.add_argument("levels", type = int, help = "how many levels to monitor for changes")
+    args = parser.parse_args()
+    # this is useful if it's easier to just give a path: byte_stream = open(args.filePath, "rb").read()
+
+    # Closed: bug - corrupts when piping as cat file.stream | program.py (adds bytes and/or removes bytes)
     # note: may be environment-caused bug, honestly could be on of a lot of things...
-
-    byte_stream = open("input2.stream", "rb").read()
+    # update: for sanity, piped data directly within IDE, surprisingly works.
+    # More research: https://github.com/PowerShell/PowerShell/issues/1908
+    byte_stream = sys.stdin.buffer.read()
     mutable_byte_stream = bytearray(byte_stream)
+    levels = args.levels
 
-    # todo: make argument
-    levels = 5
     main(mutable_byte_stream, levels)
