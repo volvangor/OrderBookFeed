@@ -1,10 +1,8 @@
-
-
 #  Copyright (c) 2022 James Hartman. All Rights Reserved
 #  main.py
 #  OrderBookFeed
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 24/4/22, 10:43 pm
+#  Last modified 24/4/22, 11:00 pm
 
 # !/usr/bin/env python3
 
@@ -31,13 +29,29 @@ SELL_STR = 'S'
 class OrderBook:
 
     def __init__(self, n):
-        # While this may seem convoluted, this method of referencing is reportedly, on average, O(1) (very fast)
+        """OrderBook Initializer
+
+        Args:
+            n (int): number of levels to monitor
+        """
+        # While this may seem convoluted, this method of referencing dicts is reportedly, on average, O(1) (very fast)
         self.symbols = {}  # {symbol: {B: {order_id: {"size": size, "price": price, "order_id": order_id}, ...}, ...}}
         self.levels = n
-        self.snapshot = {}  # {symbol: {B: {order_id: {"size": size, "price": price, "order_id": order_id}, ...}, ...}}
+        self.snapshot = {}
 
     def add(self, symbol, side, order_id, price, size):
-        # create a new order, error if exists
+        """Creates a new order, errors if exists
+
+        Args:
+            symbol (str):
+            side (str):
+            order_id (int):
+            price (int):
+            size (int):
+
+        Returns:
+
+        """
         if symbol in self.symbols:
             if side in self.symbols[symbol]:
                 if order_id in self.symbols[symbol][side]:
@@ -50,17 +64,38 @@ class OrderBook:
             self.symbols[symbol] = {side: {order_id: {"price": price, "size": size, "order_id": order_id}}}
 
     def update(self, symbol, side, order_id, price, size):
-        # update an existing order, error if not exists
+        """Updates an existing order, error if not exists
+
+        Args:
+            symbol (str):
+            side (str):
+            order_id (int):
+            price (int):
+            size (int):
+
+        Returns:
+
+        """
         self.symbols[symbol][side][order_id] = {"price": price, "size": size}
 
     def delete(self, symbol, side, order_id, size = None):
-        # delete all or execute an amount from an order
+        """Deletes all or executes an amount from an order
+
+        Args:
+            symbol (str):
+            side (str):
+            order_id (int):
+            size (int):
+
+        Returns:
+
+        """
         if size is None:
             # delete all
             del self.symbols[symbol][side][order_id]
         else:
             # execute some or all
-            # needed as for some reason -= would modify the snapshot too, bug not fixed: time constraint
+            # below workaround needed as for some reason -= would modify the snapshot too
             _old_price = self.symbols[symbol][side][order_id]["price"]
             _new_size = self.symbols[symbol][side][order_id]["size"] - size
             self.update(symbol, side, order_id, _old_price, _new_size)
@@ -68,6 +103,15 @@ class OrderBook:
                 del self.symbols[symbol][side][order_id]
 
     def take_action(self, action, sequence_num):
+        """Executes an action
+
+        Args:
+            action (dict):
+            sequence_num (int):
+
+        Returns:
+
+        """
         if action['type'] == 'A':
             # ADD
             self.add(action["symbol"], action["side"], action["order"], action["price"], action["size"])
@@ -83,6 +127,16 @@ class OrderBook:
         self.check_snapshot(action["symbol"], action["side"], sequence_num)
 
     def check_snapshot(self, symbol, side, sequence_num):
+        """Compares the incoming potential snapshot part against the matching existing snapshot part
+
+        Args:
+            symbol (str):
+            side (str):
+            sequence_num (int):
+
+        Returns:
+
+        """
         # for buy or sell in symbol (based on side): get n highest/lowest orders (based on price)
         _n = self.levels
         if len(self.symbols[symbol][side]) > 1:
@@ -108,12 +162,31 @@ class OrderBook:
             self.print_snapshot(symbol, sequence_num)
 
     def update_snapshot(self, symbol, side, update):
+        """Updates a specific snapshot part
+
+        Args:
+            symbol (str):
+            side (str):
+            update (list):
+
+        Returns:
+
+        """
         if symbol in self.snapshot:
             self.snapshot[symbol][side] = update
         else:
             self.snapshot[symbol] = {side: update}
 
     def print_snapshot(self, symbol, sequence_num):
+        """Builds and prints the snapshot string
+
+        Args:
+            symbol (str):
+            sequence_num (int):
+
+        Returns:
+
+        """
         # noinspection Duplicates
         if BUY_STR in self.snapshot[symbol]:
             _buy_str = '['
@@ -151,6 +224,7 @@ def read_n_bytes(mutable_bytes, num_bytes):
     Returns:
         bytearray, bytearray
     """
+    # According to profiling, this takes up 50% of execute time
     read_bytes: bytearray = mutable_bytes[:num_bytes]
     remaining_bytes: bytearray = mutable_bytes[num_bytes:]
     return remaining_bytes, read_bytes
@@ -169,7 +243,7 @@ def parse_msg(mutable_bytes):
         dict
     """
     # shared by all: type, symbol, orderID, side, (padding)
-    # TODO: look into 'import struct' for easier byte reading
+    # TODO: look into 'import struct' for easier byte reading?
     if len(mutable_bytes) < 16:  # bare minimum message size, according to documentation
         print(f'VALUE ERROR: length {len(mutable_bytes)}')
         raise ValueError  # TODO: refer to todo 10
@@ -189,7 +263,6 @@ def parse_msg(mutable_bytes):
             mutable_bytes, _price_bytes = read_n_bytes(mutable_bytes, 4)
             _message['price'] = int.from_bytes(_price_bytes, byteorder = 'little', signed = True)
             # remaining bytes can be discarded
-
     return _message
 
 
