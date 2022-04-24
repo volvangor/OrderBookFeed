@@ -2,7 +2,7 @@
 #  main.py
 #  OrderBookFeed
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 24/4/22, 11:02 pm
+#  Last modified 24/4/22, 11:13 pm
 
 # !/usr/bin/env python3
 
@@ -224,7 +224,8 @@ def read_n_bytes(mutable_bytes, num_bytes):
     Returns:
         bytearray, bytearray
     """
-    # According to profiling, this takes up 50% of execute time
+    # According to profiling, this takes up 50% of execute time: called 318555 times with input2.stream
+    # Threading is not an option, assuming that this program is designed for a "stream" of data (order important)
     read_bytes: bytearray = mutable_bytes[:num_bytes]
     remaining_bytes: bytearray = mutable_bytes[num_bytes:]
     return remaining_bytes, read_bytes
