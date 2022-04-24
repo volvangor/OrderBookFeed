@@ -2,7 +2,7 @@
 #  main.py
 #  OrderBookFeed
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 24/4/22, 11:00 pm
+#  Last modified 24/4/22, 11:02 pm
 
 # !/usr/bin/env python3
 
@@ -228,9 +228,6 @@ def read_n_bytes(mutable_bytes, num_bytes):
     read_bytes: bytearray = mutable_bytes[:num_bytes]
     remaining_bytes: bytearray = mutable_bytes[num_bytes:]
     return remaining_bytes, read_bytes
-
-
-# could use a class, or just global it lol
 
 
 def parse_msg(mutable_bytes):
