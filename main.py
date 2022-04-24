@@ -3,6 +3,9 @@
 #  OrderBookFeed
 #
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
+#  Last modified 24/4/22, 10:41 pm
+#
+#  Written by James Hartman <JamesLouisHartman@gmail.com.au>
 #  Last modified 24/4/22, 10:34 pm
 #
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
@@ -21,8 +24,8 @@ from operator import itemgetter
 # done: 4 keep track of order book
 # done: 5 trigger print when change occurs in top n of buy or sell
 # done: 6 cleanup, command line arguments
-# TODO: 7 optimise, brute force first
-# TODO: 8 do potential (possible) error handling
+# TODO: 7 optional: optimise, brute force first
+# TODO: 8 optional: do potential (possible) error handling
 # TODO: 9 optional: build for continuous input, i.e. unending, true stream of data
 # TODO: 10 optional: stream corruption checking
 
