@@ -1,10 +1,13 @@
+#  Copyright (c) 2022 James Hartman. All Rights Reserved
 #  timing.py
 #  OrderBookFeed
 #
 #  Written by James Hartman <JamesLouisHartman@gmail.com.au>
-#  Last modified 22/4/22, 2:07 pm
-#  Copyright (c) 2022 James Hartman. All Rights Reserved
+#  Last modified 24/4/22, 6:20 pm
 
+#  timing.py
+#  OrderBookFeed
+#
 #  timing.py
 #  OrderBookFeed
 #
@@ -45,3 +48,9 @@ def test():
 
 '''
 print(f'slice: {timeit.timeit(stmt = testcode2, setup = setup_code2)}')
+
+some_dict = {}
+
+some_dict["foo"] = 4
+
+print(some_dict)
