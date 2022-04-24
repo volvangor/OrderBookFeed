@@ -14,8 +14,8 @@
 #  main.py
 #  OrderBookFeed
 
-
-# note:  only print snapshot of N most important levels for SYMBOL if top N of SYMBOL changes
+from heapq import nlargest, nsmallest
+from operator import itemgetter
 
 # done: 1 input stream parsing
 # done: 2 pass to def for messages
@@ -95,15 +95,18 @@ class OrderBook:
     def check_snapshot(self, symbol, side, sequence_num):
         # for buy or sell in symbol (based on side): get n highest/lowest orders (based on price)
         _n = self.levels
-        if len(self.symbols[symbol][side]) > 0:
+        if len(self.symbols[symbol][side]) > 1:
             if side == BUY_STR:
                 # highest_buys
-                update = heapq.nlargest(_n, list(self.symbols[symbol][side].values()), key = itemgetter('price'))
+                update = nlargest(_n, list(self.symbols[symbol][side].values()), key = itemgetter('price'))
             else:
                 # lowest sells
-                update = heapq.nsmallest(_n, list(self.symbols[symbol][side].values()), key = itemgetter('price'))
+                update = nsmallest(_n, list(self.symbols[symbol][side].values()), key = itemgetter('price'))
+        elif len(self.symbols[symbol][side]) == 1:
+            # save time if 1, since a list of length 1 will always be "ordered"
+            update = list(self.symbols[symbol][side].values())
         else:
-            update = []  # save time if blank, which could actually be extended to 1, since len 1 is always "ordered
+            update = []  # save time if blank
 
         if symbol in self.snapshot and side in self.snapshot[symbol]:
             if update != self.snapshot[symbol][side]:
@@ -176,6 +179,7 @@ def parse_msg(mutable_bytes):
         dict
     """
     # shared by all: type, symbol, orderID, side, (padding)
+    # TODO: look into 'import struct' for easier byte reading
     if len(mutable_bytes) < 16:  # bare minimum message size, according to documentation
         print(f'VALUE ERROR: length {len(mutable_bytes)}')
         raise ValueError  # TODO: refer to todo 10
@@ -199,31 +203,30 @@ def parse_msg(mutable_bytes):
     return _message
 
 
-if __name__ == '__main__':
-    # parse command line
-    # TODO: fix this as it corrupts when passing as cat | program
-
-    foo = open("input2.stream", "rb").read()
-    mutable_foo = bytearray(foo)
-
-    # todo: make argument
-    levels = 5
-
-    order_book = OrderBook(levels)
-
-    # we always start with a header of 4 bytes
-    # original_len = len(mutable_foo)
-    while len(mutable_foo) > 8:
-        # Any smaller value would not be able to fit a header.
+def main(stream, n):
+    order_book = OrderBook(n)
+    while len(stream) > 8:  # Any smaller value would not be able to fit a header.
         # This minimum length could be larger, depending on the absolute minimum size of a message:
         # Theoretically zero. However, the minimum length for any MEANINGFUL message is 13 (16 with padding)
         # Note: doing some waiting magic, it could be possible to use an unending stream, at variable rates
-        # TODO: look into 'import struct' for easier byte reading
-        mutable_foo, seq_bytes = read_n_bytes(mutable_foo, 4)
-        mutable_foo, size_bytes = read_n_bytes(mutable_foo, 4)
+        stream, seq_bytes = read_n_bytes(stream, 4)
+        stream, size_bytes = read_n_bytes(stream, 4)
 
         seq_num = int.from_bytes(seq_bytes, byteorder = 'little', signed = False)
         msg_size = int.from_bytes(size_bytes, byteorder = 'little', signed = False)
 
-        mutable_foo, msg_bytes = read_n_bytes(mutable_foo, msg_size)
+        stream, msg_bytes = read_n_bytes(stream, msg_size)
         order_book.take_action(parse_msg(msg_bytes), seq_num)
+
+
+if __name__ == '__main__':
+    # byte_stream = sys.stdin.buffer.read()
+    # TODO: bug - corrupts when piping as cat file.stream | program.py (adds bytes and/or removes bytes)
+    # note: may be environment-caused bug, honestly could be on of a lot of things...
+
+    byte_stream = open("input2.stream", "rb").read()
+    mutable_byte_stream = bytearray(byte_stream)
+
+    # todo: make argument
+    levels = 5
+    main(mutable_byte_stream, levels)
